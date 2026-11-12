@@ -6,7 +6,6 @@ export default function Home() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    // Проверка авторизации из localStorage
     useEffect(() => {
         const stored = localStorage.getItem('user');
         if (stored) {
@@ -18,7 +17,6 @@ export default function Home() {
         }
     }, []);
 
-    // Загрузка данных с бэкенда
     useEffect(() => {
         fetch('http://127.0.0.1:8000/api/constellations')
             .then((res) => res.json())
@@ -26,7 +24,6 @@ export default function Home() {
             .catch((err) => console.error('Ошибка загрузки данных:', err));
     }, []);
 
-    // Анимация космоса и реагирование на движение мыши
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -44,7 +41,6 @@ export default function Home() {
         };
         window.addEventListener('resize', handleResize);
 
-        // Координаты мыши
         let mouse = { x: width / 2, y: height / 2 };
         const handleMouseMove = (e: MouseEvent) => {
             mouse.x = e.clientX;
@@ -52,7 +48,6 @@ export default function Home() {
         };
         window.addEventListener('mousemove', handleMouseMove);
 
-        // Создаем массив звезд для анимации фона
         const stars = Array.from({ length: 120 }, () => ({
             x: Math.random() * width,
             y: Math.random() * height,
@@ -66,7 +61,6 @@ export default function Home() {
         const render = () => {
             ctx.clearRect(0, 0, width, height);
 
-            // Смещение центра под движение мыши (параллакс)
             const dx = (mouse.x - width / 2) * 0.03;
             const dy = (mouse.y - height / 2) * 0.03;
 
@@ -101,10 +95,8 @@ export default function Home() {
 
     return (
         <main className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            {/* Интерактивный анимированный фон (Canvas) */}
             <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />
 
-            {/* Фоновые градиенты */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none z-0" />
 
             <div className="max-w-4xl w-full text-center z-10 relative">
@@ -142,10 +134,6 @@ export default function Home() {
                         🚀 Викторина
                     </a>
 
-                    {/* Стильная кнопка Дашборда */}
-
-
-                    {/* Динамическая кнопка профиля / входа */}
                     {currentUser ? (
                         <a
                             href="/dashboard"

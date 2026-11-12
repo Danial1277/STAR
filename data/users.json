@@ -12,5 +12,19 @@
     "email": "aigo6996@gmail.com",
     "password": "123",
     "role": "user"
+  },
+  {
+    "id": 3,
+    "username": "sato",
+    "email": "igo6996@gmail.com",
+    "password": "123",
+    "role": "user"
+  },
+  {
+    "id": 4,
+    "username": "root",
+    "email": "go6996@gmail.com",
+    "password": "123",
+    "role": "admin"
   }
 ]

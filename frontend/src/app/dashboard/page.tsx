@@ -5,6 +5,21 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
+    // Форма созвездия
+    const [cName, setCName] = useState('');
+    const [cLatin, setCLatin] = useState('');
+    const [cDesc, setCDesc] = useState('');
+    const [cSeason, setCSeason] = useState('Зима');
+    const [cMessage, setCMessage] = useState('');
+
+    // Форма викторины
+    const [qText, setQText] = useState('');
+    const [qOpt1, setQOpt1] = useState('');
+    const [qOpt2, setQOpt2] = useState('');
+    const [qOpt3, setQOpt3] = useState('');
+    const [qAnswer, setQAnswer] = useState('');
+    const [qMessage, setQMessage] = useState('');
+
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
@@ -14,6 +29,50 @@ export default function DashboardPage() {
         }
         setIsLoaded(true);
     }, []);
+
+    const handleAddConstellation = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCMessage('');
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/constellations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: cName, latin: cLatin, description: cDesc, season: cSeason })
+            });
+            if (res.ok) {
+                setCMessage('✨ Созвездие успешно добавлено в энциклопедию!');
+                setCName(''); setCLatin(''); setCDesc('');
+            } else {
+                setCMessage('Ошибка при добавлении');
+            }
+        } catch (err) {
+            setCMessage('Ошибка соединения с сервером');
+        }
+    };
+
+    const handleAddQuiz = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setQMessage('');
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: qText,
+                    options: [qOpt1, qOpt2, qOpt3],
+                    answer: qAnswer
+                })
+            });
+            if (res.ok) {
+                setQMessage('🚀 Вопрос успешно добавлен в викторину!');
+                setQText(''); setQOpt1(''); setQOpt2(''); setQOpt3(''); setQAnswer('');
+            } else {
+                setQMessage('Ошибка при добавлении вопроса');
+            }
+        } catch (err) {
+            setQMessage('Ошибка соединения с сервером');
+        }
+    };
 
     if (!isLoaded) {
         return <div className="min-h-screen bg-[#030712] text-cyan-400 flex items-center justify-center font-mono">Загрузка дашборда...</div>;
@@ -28,7 +87,7 @@ export default function DashboardPage() {
                     <div>
                         <h1 className="text-2xl font-bold text-white mb-1">Панель управления (Дашборд)</h1>
                         <p className="text-slate-400 text-sm">
-                            Текущий профиль: <span className="text-cyan-400 font-semibold">{user.username}</span> ({user.email})
+                            Профиль: <span className="text-cyan-400 font-semibold">{user.username}</span> ({user.email})
                         </p>
                     </div>
 
@@ -40,94 +99,113 @@ export default function DashboardPage() {
                     </span>
                 </div>
 
-                {/* 1. БЛОК ДЛЯ АДМИНИСТРАТОРА */}
+                {/* 1. БЛОК АДМИНИСТРАТОРА (Редактирование сайта) */}
                 {user.role === 'admin' && (
-                    <div className="bg-slate-900/60 border border-purple-500/40 p-6 rounded-2xl mb-6 shadow-xl">
-                        <h2 className="text-xl font-bold text-purple-400 mb-3">👑 Панель Администратора</h2>
-                        <p className="text-slate-300 text-sm mb-6">
-                            Вам доступны инструменты редактирования базы данных созвездий, модерация пользователей и просмотр системной статистики.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl">
-                                <h3 className="font-semibold text-white mb-1">Управление созвездиями</h3>
-                                <p className="text-xs text-slate-400 mb-3">Добавление и редактирование координат звезд в JSON.</p>
-                                <button className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
-                                    + Добавить объект
-                                </button>
+                    <div className="space-y-6 mb-8">
+                        <div className="bg-slate-900/60 border border-purple-500/40 p-6 rounded-2xl shadow-xl backdrop-blur-xl">
+                            <h2 className="text-xl font-bold text-purple-400 mb-2">👑 Панель редактора контента</h2>
+                            <p className="text-slate-300 text-sm mb-6">
+                                Как администратор, вы можете добавлять новые данные на сайт в реальном времени.
+                            </p>
+
+                            {/* Форма добавления созвездия */}
+                            <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl mb-6">
+                                <h3 className="text-base font-semibold text-cyan-300 mb-4">📖 Добавить созвездие в Энциклопедию</h3>
+                                {cMessage && <div className="text-sm bg-purple-500/20 border border-purple-500/40 p-3 rounded-lg mb-3 text-purple-300">{cMessage}</div>}
+                                <form onSubmit={handleAddConstellation} className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <input
+                                            type="text" placeholder="Название (например: Лебедь)" required value={cName} onChange={(e) => setCName(e.target.value)}
+                                            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
+                                        />
+                                        <input
+                                            type="text" placeholder="Латинское имя (Cygnus)" required value={cLatin} onChange={(e) => setCLatin(e.target.value)}
+                                            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
+                                        />
+                                    </div>
+                                    <textarea
+                                        placeholder="Описание созвездия..." required value={cDesc} onChange={(e) => setCDesc(e.target.value)} rows={3}
+                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
+                                    />
+                                    <div className="flex gap-3 items-center">
+                                        <select
+                                            value={cSeason} onChange={(e) => setCSeason(e.target.value)}
+                                            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
+                                        >
+                                            <option value="Зима">Зима</option>
+                                            <option value="Весна">Весна</option>
+                                            <option value="Лето">Лето</option>
+                                            <option value="Осень">Осень</option>
+                                        </select>
+                                        <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-purple-600/25">
+                                            Добавить созвездие
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl">
-                                <h3 className="font-semibold text-white mb-1">Список пользователей</h3>
-                                <p className="text-xs text-slate-400 mb-3">Управление правами доступа и ролями аккаунтов.</p>
-                                <button className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg transition">
-                                    Открыть базу users.json
-                                </button>
+
+                            {/* Форма добавления вопроса викторины */}
+                            <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl">
+                                <h3 className="text-base font-semibold text-amber-300 mb-4">🚀 Добавить вопрос в Викторину</h3>
+                                {qMessage && <div className="text-sm bg-amber-500/20 border border-amber-500/40 p-3 rounded-lg mb-3 text-amber-300">{qMessage}</div>}
+                                <form onSubmit={handleAddQuiz} className="space-y-3">
+                                    <input
+                                        type="text" placeholder="Текст вопроса..." required value={qText} onChange={(e) => setQText(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-amber-500"
+                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <input type="text" placeholder="Вариант 1" required value={qOpt1} onChange={(e) => setQOpt1(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white text-sm outline-none" />
+                                        <input type="text" placeholder="Вариант 2" required value={qOpt2} onChange={(e) => setQOpt2(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white text-sm outline-none" />
+                                        <input type="text" placeholder="Вариант 3" required value={qOpt3} onChange={(e) => setQOpt3(e.target.value)} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white text-sm outline-none" />
+                                    </div>
+                                    <div className="flex gap-3 items-center">
+                                        <input
+                                            type="text" placeholder="Правильный ответ (точная строка)" required value={qAnswer} onChange={(e) => setQAnswer(e.target.value)}
+                                            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-amber-500"
+                                        />
+                                        <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-amber-600/25">
+                                            Добавить вопрос
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
+
                         </div>
                     </div>
                 )}
 
-                {/* 2. БЛОК ДЛЯ АВТОРИЗОВАННОГО ПОЛЬЗОВАТЕЛЯ */}
+                {/* 2. БЛОК ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ */}
                 {user.role === 'user' && (
                     <div className="bg-slate-900/60 border border-cyan-500/40 p-6 rounded-2xl mb-6 shadow-xl">
                         <h2 className="text-xl font-bold text-cyan-400 mb-3">🔭 Кабинет Исследователя</h2>
-                        <p className="text-slate-300 text-sm mb-6">
-                            Вы вошли как зарегистрированный пользователь. Вам доступно сохранение избранных созвездий и статистика прохождения космической викторины.
+                        <p className="text-slate-300 text-sm">
+                            Вы вошли как зарегистрированный пользователь. Вам доступны все материалы карты неба, энциклопедии и викторины.
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl">
-                                <div className="text-2xl font-bold text-cyan-400 mb-1">4</div>
-                                <div className="text-xs text-slate-400">Изученных созвездия на карте</div>
-                            </div>
-                            <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl">
-                                <div className="text-2xl font-bold text-amber-400 mb-1">Новичок</div>
-                                <div className="text-xs text-slate-400">Ваш текущий ранг астронома</div>
-                            </div>
-                        </div>
                     </div>
                 )}
 
-                {/* 3. БЛОК ДЛЯ НЕАВТОРИЗОВАННОГО ГОСТЯ */}
+                {/* 3. БЛОК ГОСТЯ */}
                 {user.role === 'guest' && (
                     <div className="bg-slate-900/60 border border-slate-700 p-6 rounded-2xl mb-6 shadow-xl">
                         <h2 className="text-xl font-bold text-slate-200 mb-3">👀 Гостевой режим</h2>
-                        <p className="text-slate-400 text-sm mb-6">
-                            Вы просматриваете дашборд без авторизации. Вы можете свободно пользоваться картой неба и энциклопедией, но прогресс викторин и настройки не сохраняются.
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                            <a
-                                href="/auth/login"
-                                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition"
-                            >
-                                Войти в аккаунт
-                            </a>
-                            <a
-                                href="/auth/register"
-                                className="bg-slate-800 hover:bg-slate-700 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition border border-slate-700"
-                            >
-                                Зарегистрироваться
-                            </a>
+                        <p className="text-slate-400 text-sm mb-4">Вы просматриваете систему без авторизации.</p>
+                        <div className="flex gap-3">
+                            <a href="/auth/login" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm">Войти</a>
                         </div>
                     </div>
                 )}
 
-                {/* Нижняя панель навигации */}
+                {/* Нижняя панель */}
                 <div className="flex justify-between items-center pt-4 border-t border-slate-800/80">
-                    <a
-                        href="/"
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-5 py-2.5 rounded-xl text-sm transition"
-                    >
+                    <a href="/" className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-5 py-2.5 rounded-xl text-sm transition">
                         ← На главную
                     </a>
-
                     {user.role !== 'guest' && (
                         <button
-                            onClick={() => {
-                                localStorage.removeItem('user');
-                                setUser({ username: 'Гость', email: 'Не авторизован', role: 'guest' });
-                            }}
+                            onClick={() => { localStorage.removeItem('user'); setUser({ username: 'Гость', email: 'Не авторизован', role: 'guest' }); }}
                             className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-600 hover:text-white font-medium px-5 py-2.5 rounded-xl text-sm transition"
                         >
-                            Выйти (перейти в режим гостя)
+                            Выйти
                         </button>
                     )}
                 </div>
