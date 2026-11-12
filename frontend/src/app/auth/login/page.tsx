@@ -28,7 +28,7 @@ export default function LoginPage() {
             localStorage.setItem('user', JSON.stringify(data.user));
             router.push('/dashboard');
         } catch (err) {
-            setError('Ошибка соединения с сервером. Проверьте, запущен ли FastAPI.');
+            setError('Ошибка соединения с сервером. Проверьте FastAPI.');
         }
     };
 
@@ -52,22 +52,16 @@ export default function LoginPage() {
                     <div>
                         <label className="block text-sm text-slate-400 mb-1">Email</label>
                         <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:border-cyan-500 outline-none"
+                            type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:border-cyan-500 outline-none text-sm"
                             placeholder="mail@example.com"
                         />
                     </div>
                     <div>
                         <label className="block text-sm text-slate-400 mb-1">Пароль</label>
                         <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:border-cyan-500 outline-none"
+                            type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:border-cyan-500 outline-none text-sm"
                             placeholder="••••••••"
                         />
                     </div>
@@ -83,9 +77,9 @@ export default function LoginPage() {
                 <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col gap-3">
                     <button
                         onClick={continueAsGuest}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl transition border border-slate-700"
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 rounded-xl transition border border-slate-700 text-sm"
                     >
-                        👀 Войти как Гость (без регистрации)
+                        👀 Войти как Гость
                     </button>
                     <p className="text-center text-sm text-slate-400">
                         Нет аккаунта? <a href="/auth/register" className="text-cyan-400 hover:underline">Зарегистрироваться</a>
