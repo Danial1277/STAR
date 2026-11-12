@@ -26,5 +26,12 @@
     "email": "go6996@gmail.com",
     "password": "123",
     "role": "admin"
+  },
+  {
+    "id": 5,
+    "username": "nargiz",
+    "email": "nargiz@gmail.com",
+    "password": "123",
+    "role": "admin"
   }
 ]

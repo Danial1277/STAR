@@ -14,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Пути к файлам данных в корневой папке проекта
 DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/constellations.json")
 USERS_PATH = os.path.join(os.path.dirname(__file__), "../data/users.json")
 QUIZ_PATH = os.path.join(os.path.dirname(__file__), "../data/quiz.json")
@@ -52,6 +51,12 @@ class ConstellationCreate(BaseModel):
     description: str
     season: str
 
+class ConstellationUpdate(BaseModel):
+    name: str
+    latin: str
+    description: str
+    season: str
+
 class QuizQuestionCreate(BaseModel):
     question: str
     options: list[str]
@@ -65,7 +70,7 @@ def get_constellations():
 def add_constellation(item: ConstellationCreate):
     items = load_json(DATA_PATH)
     new_item = {
-        "id": len(items) + 1,
+        "id": len(items) + 1 if not items else max(i.get("id", 0) for i in items) + 1,
         "name": item.name,
         "latin": item.latin,
         "description": item.description,
@@ -76,6 +81,32 @@ def add_constellation(item: ConstellationCreate):
     save_json(DATA_PATH, items)
     return {"message": "Созвездие успешно добавлено!", "item": new_item}
 
+@app.put("/api/constellations/{item_id}")
+def update_constellation(item_id: int, item: ConstellationUpdate):
+    items = load_json(DATA_PATH)
+    found = False
+    for c in items:
+        if c.get("id") == item_id:
+            c["name"] = item.name
+            c["latin"] = item.latin
+            c["description"] = item.description
+            c["season"] = item.season
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Созвездие не найдено")
+    save_json(DATA_PATH, items)
+    return {"message": "Созвездие успешно обновлено!"}
+
+@app.delete("/api/constellations/{item_id}")
+def delete_constellation(item_id: int):
+    items = load_json(DATA_PATH)
+    new_items = [c for c in items if c.get("id") != item_id]
+    if len(new_items) == len(items):
+        raise HTTPException(status_code=404, detail="Созвездие не найдено")
+    save_json(DATA_PATH, new_items)
+    return {"message": "Созвездие удалено!"}
+
 @app.get("/api/quiz")
 def get_quiz():
     return load_json(QUIZ_PATH)
@@ -84,7 +115,7 @@ def get_quiz():
 def add_quiz_question(q: QuizQuestionCreate):
     questions = load_json(QUIZ_PATH)
     new_q = {
-        "id": len(questions) + 1,
+        "id": len(questions) + 1 if not questions else max(i.get("id", 0) for i in questions) + 1,
         "question": q.question,
         "options": q.options,
         "answer": q.answer
@@ -99,7 +130,6 @@ def register(user: UserRegister):
     if any(u["email"] == user.email for u in users):
         raise HTTPException(status_code=400, detail="Этот email уже занят")
     
-    # Если введен секретный ключ "ADMIN2026", выдаем роль admin, иначе user
     assigned_role = "admin" if user.secret_key == "ADMIN2026" else "user"
     
     new_user = {

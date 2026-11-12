@@ -5,7 +5,11 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Форма созвездия
+    // Списки для админки
+    const [constellations, setConstellations] = useState<any[]>([]);
+
+    // Состояния формы созвездия (Создание / Редактирование)
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [cName, setCName] = useState('');
     const [cLatin, setCLatin] = useState('');
     const [cDesc, setCDesc] = useState('');
@@ -28,25 +32,74 @@ export default function DashboardPage() {
             setUser({ username: 'Гость', email: 'Не авторизован', role: 'guest' });
         }
         setIsLoaded(true);
+        fetchConstellations();
     }, []);
 
-    const handleAddConstellation = async (e: React.FormEvent) => {
+    const fetchConstellations = () => {
+        fetch('http://127.0.0.1:8000/api/constellations')
+            .then((res) => res.json())
+            .then((data) => setConstellations(data))
+            .catch((err) => console.error('Ошибка загрузки созвездий:', err));
+    };
+
+    const handleSaveConstellation = async (e: React.FormEvent) => {
         e.preventDefault();
         setCMessage('');
+
+        const url = editingId
+            ? `http://127.0.0.1:8000/api/constellations/${editingId}`
+            : 'http://127.0.0.1:8000/api/constellations';
+
+        const method = editingId ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/constellations', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: cName, latin: cLatin, description: cDesc, season: cSeason })
             });
             if (res.ok) {
-                setCMessage('✨ Созвездие успешно добавлено в энциклопедию!');
-                setCName(''); setCLatin(''); setCDesc('');
+                setCMessage(editingId ? '✏️ Созвездие успешно обновлено!' : '✨ Созвездие успешно добавлено!');
+                cancelEdit();
+                fetchConstellations();
             } else {
-                setCMessage('Ошибка при добавлении');
+                setCMessage('Ошибка при сохранении');
             }
         } catch (err) {
             setCMessage('Ошибка соединения с сервером');
+        }
+    };
+
+    const startEdit = (item: any) => {
+        setEditingId(item.id);
+        setCName(item.name);
+        setCLatin(item.latin);
+        setCDesc(item.description);
+        setCSeason(item.season || 'Зима');
+        setCMessage('');
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setCName('');
+        setCLatin('');
+        setCDesc('');
+        setCSeason('Зима');
+    };
+
+    const handleDeleteConstellation = async (id: number) => {
+        if (!confirm('Вы уверены, что хотите удалить это созвездие?')) return;
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/api/constellations/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                fetchConstellations();
+            } else {
+                alert('Не удалось удалить созвездие');
+            }
+        } catch (err) {
+            alert('Ошибка соединения с сервером');
         }
     };
 
@@ -99,20 +152,31 @@ export default function DashboardPage() {
                     </span>
                 </div>
 
-                {/* 1. БЛОК АДМИНИСТРАТОРА (Редактирование сайта) */}
+                {/* 1. БЛОК АДМИНИСТРАТОРА */}
                 {user.role === 'admin' && (
                     <div className="space-y-6 mb-8">
                         <div className="bg-slate-900/60 border border-purple-500/40 p-6 rounded-2xl shadow-xl backdrop-blur-xl">
                             <h2 className="text-xl font-bold text-purple-400 mb-2">👑 Панель редактора контента</h2>
                             <p className="text-slate-300 text-sm mb-6">
-                                Как администратор, вы можете добавлять новые данные на сайт в реальном времени.
+                                Управление базой энциклопедии созвездий и викториной.
                             </p>
 
-                            {/* Форма добавления созвездия */}
+                            {/* Форма добавления/редактирования созвездия */}
                             <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl mb-6">
-                                <h3 className="text-base font-semibold text-cyan-300 mb-4">📖 Добавить созвездие в Энциклопедию</h3>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-base font-semibold text-cyan-300">
+                                        {editingId ? `✏️ Редактирование созвездия (ID: ${editingId})` : '📖 Добавить созвездие в Энциклопедию'}
+                                    </h3>
+                                    {editingId && (
+                                        <button onClick={cancelEdit} className="text-xs text-slate-400 hover:text-white underline">
+                                            Отменить редактирование
+                                        </button>
+                                    )}
+                                </div>
+
                                 {cMessage && <div className="text-sm bg-purple-500/20 border border-purple-500/40 p-3 rounded-lg mb-3 text-purple-300">{cMessage}</div>}
-                                <form onSubmit={handleAddConstellation} className="space-y-3">
+
+                                <form onSubmit={handleSaveConstellation} className="space-y-3">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <input
                                             type="text" placeholder="Название (например: Лебедь)" required value={cName} onChange={(e) => setCName(e.target.value)}
@@ -127,7 +191,7 @@ export default function DashboardPage() {
                                         placeholder="Описание созвездия..." required value={cDesc} onChange={(e) => setCDesc(e.target.value)} rows={3}
                                         className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
                                     />
-                                    <div className="flex gap-3 items-center">
+                                    <div className="flex gap-3 items-center justify-between">
                                         <select
                                             value={cSeason} onChange={(e) => setCSeason(e.target.value)}
                                             className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-purple-500"
@@ -138,10 +202,39 @@ export default function DashboardPage() {
                                             <option value="Осень">Осень</option>
                                         </select>
                                         <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-purple-600/25">
-                                            Добавить созвездие
+                                            {editingId ? 'Сохранить изменения' : 'Добавить созвездие'}
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+
+                            {/* Список существующих созвездий для управления */}
+                            <div className="bg-slate-950/80 border border-slate-800 p-5 rounded-xl mb-6">
+                                <h3 className="text-base font-semibold text-slate-200 mb-4">📚 Существующие созвездия ({constellations.length})</h3>
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                    {constellations.map((item) => (
+                                        <div key={item.id} className="flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                                            <div>
+                                                <span className="font-bold text-white text-sm">{item.name}</span>
+                                                <span className="text-xs text-slate-400 ml-2 font-mono">({item.latin})</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => startEdit(item)}
+                                                    className="bg-cyan-950 hover:bg-cyan-900 text-cyan-400 border border-cyan-800 px-3 py-1 rounded-lg text-xs transition"
+                                                >
+                                                    Редактировать
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteConstellation(item.id)}
+                                                    className="bg-red-950 hover:bg-red-900 text-red-400 border border-red-800 px-3 py-1 rounded-lg text-xs transition"
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Форма добавления вопроса викторины */}
@@ -160,7 +253,7 @@ export default function DashboardPage() {
                                     </div>
                                     <div className="flex gap-3 items-center">
                                         <input
-                                            type="text" placeholder="Правильный ответ (точная строка)" required value={qAnswer} onChange={(e) => setQAnswer(e.target.value)}
+                                            type="text" placeholder="Правильный ответ" required value={qAnswer} onChange={(e) => setQAnswer(e.target.value)}
                                             className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-amber-500"
                                         />
                                         <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-amber-600/25">
@@ -174,13 +267,11 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {/* 2. БЛОК ОБЫЧНОГО ПОЛЬЗОВАТЕЛЯ */}
+                {/* 2. БЛОК ПОЛЬЗОВАТЕЛЯ */}
                 {user.role === 'user' && (
                     <div className="bg-slate-900/60 border border-cyan-500/40 p-6 rounded-2xl mb-6 shadow-xl">
                         <h2 className="text-xl font-bold text-cyan-400 mb-3">🔭 Кабинет Исследователя</h2>
-                        <p className="text-slate-300 text-sm">
-                            Вы вошли как зарегистрированный пользователь. Вам доступны все материалы карты неба, энциклопедии и викторины.
-                        </p>
+                        <p className="text-slate-300 text-sm">Вы вошли как зарегистрированный пользователь.</p>
                     </div>
                 )}
 
@@ -189,9 +280,7 @@ export default function DashboardPage() {
                     <div className="bg-slate-900/60 border border-slate-700 p-6 rounded-2xl mb-6 shadow-xl">
                         <h2 className="text-xl font-bold text-slate-200 mb-3">👀 Гостевой режим</h2>
                         <p className="text-slate-400 text-sm mb-4">Вы просматриваете систему без авторизации.</p>
-                        <div className="flex gap-3">
-                            <a href="/auth/login" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm">Войти</a>
-                        </div>
+                        <a href="/auth/login" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 rounded-xl text-sm inline-block">Войти</a>
                     </div>
                 )}
 
