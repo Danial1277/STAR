@@ -3,7 +3,20 @@ import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
     const [constellations, setConstellations] = useState<any[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+    // Проверка авторизации из localStorage
+    useEffect(() => {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+            try {
+                setCurrentUser(JSON.parse(stored));
+            } catch (e) {
+                setCurrentUser(null);
+            }
+        }
+    }, []);
 
     // Загрузка данных с бэкенда
     useEffect(() => {
@@ -103,7 +116,7 @@ export default function Home() {
                 </p>
 
                 {/* Навигационные кнопки */}
-                <div className="flex flex-wrap justify-center gap-4 mb-12">
+                <div className="flex flex-wrap justify-center gap-4 mb-12 items-center">
                     <a
                         href="/map"
                         className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-cyan-500/25 flex items-center gap-2"
@@ -128,12 +141,26 @@ export default function Home() {
                     >
                         🚀 Викторина
                     </a>
-                    <a
-                        href="/auth/login"
-                        className="border border-slate-700 hover:border-cyan-500 bg-slate-900/60 backdrop-blur-md text-slate-200 font-bold px-6 py-3 rounded-xl transition flex items-center gap-2"
-                    >
-                        👤 Профиль
-                    </a>
+
+                    {/* Стильная кнопка Дашборда */}
+
+
+                    {/* Динамическая кнопка профиля / входа */}
+                    {currentUser ? (
+                        <a
+                            href="/dashboard"
+                            className="bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 font-medium px-5 py-3 rounded-xl transition border border-purple-700/50 backdrop-blur-md flex items-center gap-2 shadow-lg shadow-purple-950/30"
+                        >
+                            👤 {currentUser.username} <span className="text-xs opacity-75 font-mono">({currentUser.role})</span>
+                        </a>
+                    ) : (
+                        <a
+                            href="/auth/login"
+                            className="border border-slate-700 hover:border-cyan-500 bg-slate-900/60 backdrop-blur-md text-slate-200 font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-lg"
+                        >
+                            👤 Войти
+                        </a>
+                    )}
                 </div>
 
                 {/* Секция данных с бэкенда */}
