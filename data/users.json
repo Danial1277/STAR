@@ -4,7 +4,8 @@
     "username": "nargiz",
     "email": "kaigo6996@gmail.com",
     "password": "123",
-    "role": "user"
+    "role": "user",
+    "score": 10
   },
   {
     "id": 2,
@@ -32,6 +33,16 @@
     "username": "nargiz",
     "email": "nargiz@gmail.com",
     "password": "123",
-    "role": "admin"
+    "role": "admin",
+    "score": 10
+  },
+  {
+    "id": 6,
+    "username": "Админ",
+    "email": "6996@gmail.com",
+    "password": "123",
+    "role": "admin",
+    "score": 20,
+    "completed": []
   }
 ]
