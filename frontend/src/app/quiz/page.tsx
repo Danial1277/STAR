@@ -1,128 +1,106 @@
 'use client';
-import { useState } from 'react';
-
-const quizQuestions = [
-    {
-        question: 'Какое созвездие включает в себя знаменитый астеризм «Большой Ковш»?',
-        options: ['Орион', 'Большая Медведица', 'Кассиопея', 'Лебедь'],
-        correct: 1,
-    },
-    {
-        question: 'Какая звезда является самой яркой на ночном небе Земли?',
-        options: ['Полярная звезда', 'Бетельгейзе', 'Сириус', 'Ригель'],
-        correct: 2,
-    },
-    {
-        question: 'По какому характерному элементу легко узнать созвездие Ориона?',
-        options: ['Пояс Ориона из трех звезд', 'Форма большого креста', 'Кольцо из туманностей', 'Семь ярких сестер'],
-        correct: 0,
-    },
-];
+import { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
 
 export default function QuizPage() {
+    const [questions, setQuestions] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const [score, setScore] = useState(0);
-    const [isFinished, setIsFinished] = useState(false);
+    const [gameOver, setGameOver] = useState(false);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
+    const [user, setUser] = useState<any>(null);
 
-    const handleAnswer = (index: number) => {
-        setSelectedOption(index);
+    useEffect(() => {
+        const stored = localStorage.getItem('user');
+        if (stored) setUser(JSON.parse(stored));
+
+        fetch('http://127.0.0.1:8000/api/quiz')
+            .then(res => res.json())
+            .then(data => setQuestions(data));
+
+        fetchLeaderboard();
+    }, []);
+
+    const fetchLeaderboard = () => {
+        fetch('http://127.0.0.1:8000/api/quiz/leaderboard')
+            .then(res => res.json())
+            .then(data => setLeaderboard(data));
     };
 
-    const handleNext = () => {
-        if (selectedOption === quizQuestions[currentIndex].correct) {
-            setScore(score + 1);
+    const handleAnswer = async (selected: string) => {
+        const currentQ = questions[currentIndex];
+        let newScore = score;
+        if (selected === currentQ.answer) {
+            newScore += 10;
+            setScore(newScore);
         }
 
-        const nextIndex = currentIndex + 1;
-        if (nextIndex < quizQuestions.length) {
-            setCurrentIndex(nextIndex);
-            setSelectedOption(null);
+        if (currentIndex + 1 < questions.length) {
+            setCurrentIndex(currentIndex + 1);
         } else {
-            setIsFinished(true);
+            setGameOver(true);
+            if (user) {
+                await fetch('http://127.0.0.1:8000/api/quiz/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: user.email, score: newScore })
+                });
+                fetchLeaderboard();
+            }
         }
-    };
-
-    const restartQuiz = () => {
-        setCurrentIndex(0);
-        setSelectedOption(null);
-        setScore(0);
-        setIsFinished(false);
     };
 
     return (
-        <main className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <main className="min-h-screen bg-[#030712] text-slate-100 flex flex-col">
+            <Navbar />
+            <div className="flex-1 p-6 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
 
-            <div className="max-w-xl w-full bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 shadow-2xl z-10">
-                <div className="flex justify-between items-center mb-6">
-                    <a href="/" className="text-slate-400 hover:text-cyan-400 transition text-sm font-semibold">
-                        ← На главную
-                    </a>
-                    <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
-                        🚀 Космическая викторина
-                    </h1>
+                {/* Карточка викторины */}
+                <div className="md:col-span-2 bg-slate-900/80 border border-slate-800 p-8 rounded-2xl shadow-xl">
+                    <h1 className="text-2xl font-bold text-amber-400 mb-6">🚀 Космическая викторина</h1>
+
+                    {questions.length === 0 ? (
+                        <p className="text-slate-500">Загрузка вопросов...</p>
+                    ) : !gameOver ? (
+                        <div>
+                            <div className="text-xs text-slate-500 mb-2 font-mono">Вопрос {currentIndex + 1} из {questions.length}</div>
+                            <h2 className="text-lg font-semibold text-white mb-6">{questions[currentIndex].question}</h2>
+                            <div className="space-y-3">
+                                {questions[currentIndex].options.map((opt: string, idx: number) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleAnswer(opt)}
+                                        className="w-full text-left bg-slate-950 border border-slate-800 hover:border-amber-500/50 p-4 rounded-xl text-slate-200 transition"
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <h2 className="text-3xl font-bold text-white mb-2">🎉 Викторина завершена!</h2>
+                            <p className="text-slate-400 mb-6">Ваш результат: <span className="text-amber-400 font-bold">{score} очков</span></p>
+                            <button onClick={() => { setCurrentIndex(0); setScore(0); setGameOver(false); }} className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-3 rounded-xl transition">
+                                Начать заново
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {!isFinished ? (
-                    <div>
-                        <div className="flex justify-between items-center text-xs text-slate-400 mb-4 font-mono">
-                            <span>Вопрос {currentIndex + 1} из {quizQuestions.length}</span>
-                            <span>Счет: {score}</span>
-                        </div>
-
-                        <h2 className="text-lg font-bold text-white mb-6 leading-snug">
-                            {quizQuestions[currentIndex].question}
-                        </h2>
-
-                        <div className="space-y-3 mb-8">
-                            {quizQuestions[currentIndex].options.map((option, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleAnswer(idx)}
-                                    className={`w-full text-left p-4 rounded-xl border transition text-sm font-medium ${selectedOption === idx
-                                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-lg shadow-cyan-500/10'
-                                        : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700'
-                                        }`}
-                                >
-                                    {option}
-                                </button>
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={handleNext}
-                            disabled={selectedOption === null}
-                            className={`w-full font-bold py-3 rounded-xl transition shadow-lg ${selectedOption !== null
-                                ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/25 cursor-pointer'
-                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                }`}
-                        >
-                            {currentIndex + 1 === quizQuestions.length ? 'Завершить тест' : 'Следующий вопрос'}
-                        </button>
+                {/* Таблица лидеров */}
+                <div className="bg-slate-900/80 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                    <h3 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">🏆 Топ игроков</h3>
+                    <div className="space-y-3">
+                        {leaderboard.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-3 rounded-xl text-sm">
+                                <span className="font-semibold text-white">{idx + 1}. {item.username}</span>
+                                <span className="text-amber-400 font-mono font-bold">{item.score} очков</span>
+                            </div>
+                        ))}
                     </div>
-                ) : (
-                    <div className="text-center py-6">
-                        <h2 className="text-2xl font-extrabold text-white mb-3">Викторина завершена! 🎉</h2>
-                        <p className="text-slate-400 text-sm mb-6">
-                            Вы ответили правильно на <span className="text-cyan-400 font-bold">{score}</span> из <span className="font-bold">{quizQuestions.length}</span> вопросов.
-                        </p>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={restartQuiz}
-                                className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-cyan-500/25"
-                            >
-                                Пройти снова
-                            </button>
-                            <a
-                                href="/"
-                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition flex items-center justify-center"
-                            >
-                                На главную
-                            </a>
-                        </div>
-                    </div>
-                )}
+                </div>
+
             </div>
         </main>
     );
