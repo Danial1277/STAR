@@ -426,11 +426,10 @@ export default function MapPage() {
 								setScale(viewAll ? 1 : 0.65)
 								setOffset({ x: 0, y: 0 })
 							}}
-							className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
-								viewAll
+							className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${viewAll
 									? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/25'
 									: 'bg-slate-950 text-cyan-400 border-cyan-500/40 hover:bg-cyan-950/50'
-							}`}
+								}`}
 						>
 							{viewAll ? '✨ Показано всё небо' : '🌌 Показать все созвездия'}
 						</button>
