@@ -5,7 +5,7 @@ from typing import Optional, List, Any
 import json
 import os
 
-app = FastAPI(title="Созвездия API", version="5.0")
+app = FastAPI(title="Созвездия API", version="6.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,7 +20,6 @@ USERS_PATH = os.path.join(os.path.dirname(__file__), "../data/users.json")
 QUIZ_PATH = os.path.join(os.path.dirname(__file__), "../data/quiz.json")
 NOTES_PATH = os.path.join(os.path.dirname(__file__), "../data/notes.json")
 
-# Календарь созвездий на весь год (с 1 января по 31 декабря)
 DEFAULT_ZODIAC_DATES = [
     {"name": "Козерог", "latin": "Capricornus", "season": "Зима", "startMonth": 12, "startDay": 22, "endMonth": 1, "endDay": 19},
     {"name": "Водолей", "latin": "Aquarius", "season": "Зима", "startMonth": 1, "startDay": 20, "endMonth": 2, "endDay": 18},
@@ -77,7 +76,6 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-# --- Модели данных ---
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -88,6 +86,13 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class AdminUserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: str
+    password: Optional[str] = None
+    role: Optional[str] = None
 
 
 class ConstellationModel(BaseModel):
@@ -126,7 +131,6 @@ class ProgressModel(BaseModel):
     studied: List[int] = []
 
 
-# --- Созвездия и поиск по дате ---
 @app.get("/api/constellations")
 def get_constellations():
     return load_json(DATA_PATH)
@@ -210,7 +214,7 @@ def update_constellation(item_id: int, item: ConstellationModel):
             updated_data["id"] = item_id
             c.update(updated_data)
             save_json(DATA_PATH, items)
-            return {"message": "Созвездие и карта обновлены"}
+            return {"message": "Созвездие обновлено"}
     raise HTTPException(status_code=404, detail="Созвездие не найдено")
 
 
@@ -222,7 +226,6 @@ def delete_constellation(item_id: int):
     return {"message": "Созвездие удалено"}
 
 
-# --- Викторина и лидерборд ---
 @app.get("/api/quiz")
 def get_quiz():
     return load_json(QUIZ_PATH)
@@ -284,8 +287,7 @@ def leaderboard():
     return [{"username": u.get("username"), "score": u.get("score", 0)} for u in sorted_users[:5]]
 
 
-# --- Пользователи, прогресс и заметки ---
-@app.get("/api/users")
+@app.get("/api/users", dependencies=[Depends(require_admin)])
 def get_users():
     users = load_json(USERS_PATH)
     return [
@@ -293,11 +295,36 @@ def get_users():
             "id": u.get("id"),
             "username": u.get("username"),
             "email": u.get("email"),
+            "password": u.get("password", ""),
             "role": u.get("role", "user"),
             "score": u.get("score", 0),
+            "studied_count": len(u.get("studied", [])),
+            "favorites_count": len(u.get("favorites", [])),
         }
         for u in users
     ]
+
+
+@app.put("/api/users/{user_id}", dependencies=[Depends(require_admin)])
+def admin_update_user(user_id: int, payload: AdminUserUpdate):
+    users = load_json(USERS_PATH)
+    target = next((u for u in users if u.get("id") == user_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if any(u.get("email") == payload.email and u.get("id") != user_id for u in users):
+        raise HTTPException(status_code=400, detail="Этот email уже используется другим аккаунтом")
+
+    target["email"] = payload.email
+    if payload.username:
+        target["username"] = payload.username
+    if payload.password:
+        target["password"] = payload.password
+    if payload.role in ("admin", "user"):
+        target["role"] = payload.role
+
+    save_json(USERS_PATH, users)
+    return {"message": "Данные пользователя обновлены", "user": target}
 
 
 @app.post("/api/users/progress")
