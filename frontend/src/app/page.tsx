@@ -1,28 +1,11 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import Navbar from '@/components/Navbar';
+import { Map, BookOpen, Calendar, Compass, LayoutDashboard, ArrowRight } from 'lucide-react';
 
-export default function Home() {
-    const [constellations, setConstellations] = useState<any[]>([]);
-    const [currentUser, setCurrentUser] = useState<any>(null);
+export default function HomePage() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-    useEffect(() => {
-        const stored = localStorage.getItem('user');
-        if (stored) {
-            try {
-                setCurrentUser(JSON.parse(stored));
-            } catch (e) {
-                setCurrentUser(null);
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        fetch('http://127.0.0.1:8000/api/constellations')
-            .then((res) => res.json())
-            .then((data) => setConstellations(data))
-            .catch((err) => console.error('Ошибка загрузки данных:', err));
-    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -30,162 +13,123 @@ export default function Home() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let animationFrameId: number;
-        let width = (canvas.width = window.innerWidth);
-        let height = (canvas.height = window.innerHeight);
-
-        const handleResize = () => {
-            if (!canvas) return;
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        };
-        window.addEventListener('resize', handleResize);
-
-        let mouse = { x: width / 2, y: height / 2 };
-        const handleMouseMove = (e: MouseEvent) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-
-        const stars = Array.from({ length: 120 }, () => ({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            radius: Math.random() * 2 + 0.5,
-            vx: (Math.random() - 0.5) * 0.2,
-            vy: (Math.random() - 0.5) * 0.2,
+        let animId: number;
+        const stars = Array.from({ length: 140 }, () => ({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            r: Math.random() * 1.5 + 0.4,
             alpha: Math.random(),
-            vAlpha: (Math.random() - 0.5) * 0.02,
+            speed: (Math.random() - 0.5) * 0.02,
         }));
 
         const render = () => {
-            ctx.clearRect(0, 0, width, height);
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const dx = (mouse.x - width / 2) * 0.03;
-            const dy = (mouse.y - height / 2) * 0.03;
-
-            stars.forEach((star) => {
-                star.x += star.vx;
-                star.y += star.vy;
-                star.alpha += star.vAlpha;
-
-                if (star.alpha <= 0.1 || star.alpha >= 1) star.vAlpha *= -1;
-                if (star.x < 0) star.x = width;
-                if (star.x > width) star.x = 0;
-                if (star.y < 0) star.y = height;
-                if (star.y > height) star.y = 0;
-
+            stars.forEach((s) => {
+                s.alpha += s.speed;
+                if (s.alpha <= 0.15 || s.alpha >= 1) s.speed *= -1;
                 ctx.beginPath();
-                ctx.arc(star.x + dx * star.radius, star.y + dy * star.radius, star.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(186, 230, 253, ${s.alpha})`;
                 ctx.fill();
             });
 
-            animationFrameId = requestAnimationFrame(render);
+            animId = requestAnimationFrame(render);
         };
 
         render();
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('mousemove', handleMouseMove);
-            cancelAnimationFrame(animationFrameId);
-        };
+        return () => cancelAnimationFrame(animId);
     }, []);
 
+    const sections = [
+        {
+            href: '/map',
+            title: 'Интерактивная карта неба',
+            description: 'Масштабирование, навигация по звёздам, просмотр спектральных характеристик и схем созвездий.',
+            icon: Map,
+        },
+        {
+            href: '/encyclopedia',
+            title: 'Энциклопедия созвездий',
+            description: 'Каталог созвездий с фильтрацией по временам года, латинскими названиями и описаниями.',
+            icon: BookOpen,
+        },
+        {
+            href: '/date-finder',
+            title: 'Поиск по дате',
+            description: 'Определение созвездия и сезона видимости для любого дня и месяца в году.',
+            icon: Calendar,
+        },
+        {
+            href: '/quiz',
+            title: 'Астрономическая викторина',
+            description: 'Проверка знаний о звёздном небе с сохранением рекордов и таблицей лидеров.',
+            icon: Compass,
+        },
+    ];
+
     return (
-        <main className="min-h-screen bg-[#030712] text-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />
+        <main className="relative min-h-screen bg-[#030712] text-slate-100 flex flex-col overflow-hidden">
+            <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-70" />
 
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none z-0" />
+            <Navbar />
 
-            <div className="max-w-4xl w-full text-center z-10 relative">
-                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-4 tracking-tight drop-shadow-lg">
-                    ✨ Интерактивная энциклопедия звёздного неба
-                </h1>
-                <p className="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
-                    Исследуйте расширенную карту космоса, находите созвездия по дате рождения и проверяйте свои знания в викторине.
-                </p>
+            <section className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-6 py-16 flex flex-col justify-center">
+                <div className="max-w-3xl space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-mono text-cyan-400">
+                        <span>Интерактивный атлас звёздного неба</span>
+                    </div>
 
-                {/* Навигационные кнопки */}
-                <div className="flex flex-wrap justify-center gap-4 mb-12 items-center">
-                    <a
-                        href="/map"
-                        className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-cyan-500/25 flex items-center gap-2"
-                    >
-                        🗺️ Карта неба
-                    </a>
-                    <a
-                        href="/encyclopedia"
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-blue-600/25 flex items-center gap-2"
-                    >
-                        📖 Энциклопедия
-                    </a>
-                    <a
-                        href="/date-finder"
-                        className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-purple-600/25 flex items-center gap-2"
-                    >
-                        📅 Созвездие по дате
-                    </a>
-                    <a
-                        href="/quiz"
-                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-amber-600/25 flex items-center gap-2"
-                    >
-                        🚀 Викторина
-                    </a>
+                    <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
+                        Исследуйте карту созвездий и навигацию по звёздам
+                    </h1>
 
-                    {currentUser ? (
-                        <a
+                    <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl">
+                        Изучайте расположение звёзд на интерактивном холсте, находите созвездия по дате рождения,
+                        ведите дневник наблюдений и проверяйте свои знания в викторине.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <Link
+                            href="/map"
+                            className="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition"
+                        >
+                            <span>Открыть карту неба</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </Link>
+                        <Link
                             href="/dashboard"
-                            className="bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 font-medium px-5 py-3 rounded-xl transition border border-purple-700/50 backdrop-blur-md flex items-center gap-2 shadow-lg shadow-purple-950/30"
+                            className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-semibold px-6 py-3 rounded-xl text-sm transition"
                         >
-                            👤 {currentUser.username} <span className="text-xs opacity-75 font-mono">({currentUser.role})</span>
-                        </a>
-                    ) : (
-                        <a
-                            href="/auth/login"
-                            className="border border-slate-700 hover:border-cyan-500 bg-slate-900/60 backdrop-blur-md text-slate-200 font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-lg"
-                        >
-                            👤 Войти
-                        </a>
-                    )}
+                            <LayoutDashboard className="w-4 h-4 text-cyan-400" />
+                            <span>Личный кабинет и режимы</span>
+                        </Link>
+                    </div>
                 </div>
 
-                {/* Секция данных с бэкенда */}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 text-left shadow-2xl">
-                    <h2 className="text-xl font-semibold text-cyan-300 mb-6 flex items-center gap-2">
-                        🌌 База космических объектов ({constellations.length} созвездия):
-                    </h2>
-                    {constellations.length === 0 ? (
-                        <div className="flex items-center justify-center py-8 text-slate-500 text-sm animate-pulse">
-                            Загрузка базы данных FastAPI...
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {constellations.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="p-5 bg-slate-950/60 border border-slate-800/80 rounded-xl hover:border-cyan-500/50 transition group"
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold text-lg text-white group-hover:text-cyan-400 transition">
-                                            {item.name}
-                                        </h3>
-                                        <span className="text-xs px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/50 font-mono">
-                                            {item.latin}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed mb-3">{item.description}</p>
-                                    <div className="text-xs text-slate-500 flex justify-between border-t border-slate-800/80 pt-2 font-mono">
-                                        <span>Сезон: {item.season}</span>
-                                        <span>Звезд в базе: {item.stars?.length || 0}</span>
-                                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-14">
+                    {sections.map(({ href, title, description, icon: Icon }) => (
+                        <Link
+                            key={href}
+                            href={href}
+                            className="group bg-slate-900/75 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 p-6 rounded-2xl transition backdrop-blur-md flex flex-col justify-between gap-4"
+                        >
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-400 group-hover:border-cyan-500/40 transition">
+                                    <Icon className="w-5 h-5" />
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-white mb-1">{title}</h2>
+                                <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
+                            </div>
+                        </Link>
+                    ))}
                 </div>
-            </div>
+            </section>
         </main>
     );
 }
