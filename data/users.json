@@ -44,5 +44,35 @@
     "role": "admin",
     "score": 20,
     "completed": []
+  },
+  {
+    "id": 7,
+    "username": "teddy",
+    "email": "777@gmail.com",
+    "password": "123",
+    "role": "admin",
+    "score": 0,
+    "favorites": [],
+    "studied": []
+  },
+  {
+    "id": 8,
+    "username": "dante12",
+    "email": "12@gmail.com",
+    "password": "123",
+    "role": "user",
+    "score": 10,
+    "favorites": [],
+    "studied": []
+  },
+  {
+    "id": 9,
+    "username": "чоколатта",
+    "email": "888@gmail.com",
+    "password": "123",
+    "role": "admin",
+    "score": 20,
+    "favorites": [],
+    "studied": []
   }
 ]
